@@ -92,11 +92,11 @@
     (let [write-future (.write ch region)]
       (if zero-copy
         (.addListener write-future
-                      (proxy [ChannelFutureProgressListener] []
-                             (operationComplete [fut]
+                      (reify ChannelFutureProgressListener
+                             (operationComplete [this fut]
                                                 (.releaseExternalResources region)))))
       (if not keep-alive
-        (.addListener write-future ChannelFutureListener/CLOSE)))))
+          (.addListener write-future ChannelFutureListener/CLOSE)))))
 
 (defn write-response [ctx zerocopy keep-alive {:keys [status headers body]}]
   (let [ch (.getChannel ctx)
@@ -110,10 +110,10 @@
 	  (do
             (.write ch netty-response)
             (-> (.write ch (ChunkedStream. body))
-                (.addListener (proxy [ChannelFutureListener] []
-                                (operationComplete [fut]
-                                                   (.close body)
-                                                   (-> fut .getChannel .close))))))
+                (.addListener (reify ChannelFutureListener
+                                     (operationComplete [this fut]
+                                                        (.close body)
+                                                        (-> fut .getChannel .close))))))
 	  (instance? File body)
           (write-file ch netty-response body keep-alive zerocopy)
 	  (nil? body)

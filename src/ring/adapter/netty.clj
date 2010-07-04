@@ -34,9 +34,9 @@
     pipeline))
 
 (defn- pipeline-factory [options handler]
-  (proxy [ChannelPipelineFactory] []
-	 (getPipeline [] (make-pipeline options handler))))
-	
+  (reify ChannelPipelineFactory
+	 (getPipeline [this] (make-pipeline options handler))))
+
 (defn- create-server [options handler]
   (let [bootstrap (ServerBootstrap. (NioServerSocketChannelFactory.
 				     (Executors/newCachedThreadPool)
