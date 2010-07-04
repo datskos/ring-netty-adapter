@@ -1,0 +1,23 @@
+This repo adds (experimental/alpha) Netty support to Ring
+
+(use 'ring.adapter.netty)
+(defn app
+  [req]
+  {:status  200
+   :headers {"Content-Type" "text/html"}
+   :body    (str "hello word")})
+
+(run-netty app {:port 8080})
+
+Currently there are 2 branches: master (clojure 1.1) and compat-1.2 for clojure 1.2 support.  The only difference is proxy vs reify (reify performs better).
+
+I'm getting roughly 7k req/s with 1.1 and 9.5k req/s with 1.2 using an unscientific benchmark on my not-quite-so-new machine.
+
+
+Next steps: 
+1. squash any bugs that pop up
+2. ssl support
+3. websockets, comet
+
+
+
