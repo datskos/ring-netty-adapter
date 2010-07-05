@@ -4,6 +4,6 @@
   :dependencies [[org.clojure/clojure "1.1.0"]
                  [org.clojure/clojure-contrib "1.1.0"]
                  [org.jboss.netty/netty       "3.2.1.Final"]
-                 [swank-clojure "1.2.1"]
                  [ring "0.2.4"]]
+  :dev-dependencies [[swank-clojure "1.2.1"]]
   :namespaces [ring.adapter.netty ring.adapter.plumbing])
