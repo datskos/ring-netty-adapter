@@ -16,7 +16,7 @@ You can try out the demos; they are the same as the ones in the Ring repository,
 
     $ lein jar
 
-    $ java -cp "lib/*:*" clojure.main example/hellow_word.clj
+    $ java -cp "lib/*:*" clojure.main example/hello_world.clj
 
     $ java -cp "lib/*:*" clojure.main example/wrapping.clj
 
