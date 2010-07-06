@@ -20,6 +20,8 @@ You can try out the demos; they are the same as the ones in the Ring repository,
 
     $ java -cp "lib/*:*" clojure.main example/wrapping.clj
 
+    $ java -cp "lib/*:*" clojure.main example/linted.clj
+
 
 Currently there are 2 branches: master (clojure 1.1) and compat-1.2 for clojure 1.2 support.  The only difference is proxy vs reify (reify performs better).
 
