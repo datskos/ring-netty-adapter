@@ -47,10 +47,10 @@
   "Converts a netty request into a ring request map"
   [ctx netty-request]
   (let [headers (get-headers netty-request)
-	[domain port] (.split (headers "host" "localhost:80") ":")
+	socket-address (-> ctx .getChannel .getLocalAddress)
 	[uri query-string] (uri-query netty-request)]
-    {:server-port        (Integer/parseInt port)
-     :server-name        domain
+    {:server-port        (.getPort socket-address)
+     :server-name        (.getHostName socket-address)
      :remote-addr        (remote-address ctx)
      :uri                uri
      :query-string       query-string
