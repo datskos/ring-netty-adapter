@@ -1,4 +1,4 @@
-(defproject ring-netty-adapter "0.0.1"
+(defproject ring-netty-adapter "0.0.2"
   :repositories [["JBoss" "http://repository.jboss.org/nexus/content/groups/public/"]]
   :description "Ring Netty adapter"
   :dependencies [[org.clojure/clojure "1.1.0"]

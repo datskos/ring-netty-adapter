@@ -27,6 +27,12 @@ Currently there are 2 branches: master (clojure 1.1) and compat-1.2 for clojure 
 
 I'm getting roughly 7k req/s with 1.1 and 9.5k req/s with 1.2 using an unscientific benchmark on my not-quite-so-new machine.
 
+### Leiningen
+
+To use the netty backend, include ring-netty-adapter in your project.clj's :dependencies
+
+    [ring-netty-adapter "0.0.2"]
+
 
 Next steps: 
 
