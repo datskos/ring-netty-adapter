@@ -9,7 +9,7 @@
 					       HttpResponseStatus DefaultHttpResponse)))
 	   
 (defn- remote-address [ctx]
-  (-> ctx .getChannel .getRemoteAddress .toString (.split ":")))
+  (-> ctx .getChannel .getRemoteAddress .toString (.split ":") first (subs 1)))
 
 (defn- get-meth [req]
   (-> req .getMethod .getName .toLowerCase keyword))
@@ -25,8 +25,8 @@
 
 (defn- content-type [headers]
   (if-let [ct (headers "content-type")]
-    (-> ct (.split ";") first .trim .toLowerCase)
-    "text/html"))
+    (-> ct (.split ";") first .trim .toLowerCase)))
+
 
 (defn- uri-query [req]
   (let [uri (.getUri req)
@@ -49,9 +49,9 @@
   (let [headers (get-headers netty-request)
 	[domain port] (.split (headers "host" "localhost:80") ":")
 	[uri query-string] (uri-query netty-request)]
-    {:server-port        port
+    {:server-port        (Integer/parseInt port)
      :server-name        domain
-     :remote-addr        (first (remote-address ctx))
+     :remote-addr        (remote-address ctx)
      :uri                uri
      :query-string       query-string
      :scheme             (keyword (headers "x-scheme" "http"))
