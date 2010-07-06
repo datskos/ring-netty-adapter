@@ -1,21 +1,24 @@
+## Ring-Netty-Adapter
+
 This repo adds (experimental/alpha) Netty support to Ring
 
-(use 'ring.adapter.netty)
-(defn app
-  [req]
-  {:status  200
-   :headers {"Content-Type" "text/html"}
-   :body    (str "hello word")})
+    (use 'ring.adapter.netty)
 
-(run-netty app {:port 8080})
+    (defn app [req]
+      {:status  200
+       :headers {"Content-Type" "text/html"}
+       :body    "Hello World from Ring-Netty"})
+    
+    (run-netty app {:port 8080})
 
 
 You can try out the demos; they are the same as the ones in the Ring repository, except here they use netty as the backend server instead of jetty.
 
-lein jar
-java -cp "lib/*:*" clojure.main example/hellow_word.clj
+    $ lein jar
 
-java -cp "lib/*:*" clojure.main.example/wrapping.clj
+    $ java -cp "lib/*:*" clojure.main example/hellow_word.clj
+
+    $ java -cp "lib/*:*" clojure.main example/wrapping.clj
 
 
 Currently there are 2 branches: master (clojure 1.1) and compat-1.2 for clojure 1.2 support.  The only difference is proxy vs reify (reify performs better).
@@ -24,9 +27,7 @@ I'm getting roughly 7k req/s with 1.1 and 9.5k req/s with 1.2 using an unscienti
 
 
 Next steps: 
-1. squash any bugs that pop up
-2. ssl support
-3. websockets, comet
 
-
-
+* squash any bugs that pop up
+* ssl support
+* websockets, comet
