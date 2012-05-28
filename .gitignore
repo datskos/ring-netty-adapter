@@ -1,0 +1,7 @@
+*.iws
+*.iml
+*.ipr
+.lein-deps-sum
+classes/
+lib/
+target/

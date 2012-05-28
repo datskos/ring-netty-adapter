@@ -1,12 +1,10 @@
 (ns ring.adapter.plumbing
-  (:use [clojure.contrib.except :only (throwf)])
   (:import (java.io InputStream File RandomAccessFile FileInputStream)
            (java.net URLConnection)
-	   (org.jboss.netty.channel ChannelFutureListener DefaultFileRegion ChannelFutureProgressListener)
-	   (org.jboss.netty.buffer ChannelBufferInputStream ChannelBuffers)
-	   (org.jboss.netty.handler.stream ChunkedStream ChunkedFile)
-	   (org.jboss.netty.handler.codec.http HttpHeaders HttpVersion HttpMethod 
-					       HttpResponseStatus DefaultHttpResponse)))
+	         (org.jboss.netty.channel ChannelFutureListener DefaultFileRegion ChannelFutureProgressListener)
+	         (org.jboss.netty.buffer ChannelBufferInputStream ChannelBuffers)
+	         (org.jboss.netty.handler.stream ChunkedStream ChunkedFile)
+	         (org.jboss.netty.handler.codec.http HttpHeaders HttpVersion HttpMethod HttpResponseStatus DefaultHttpResponse)))
 	   
 (defn- remote-address [ctx]
   (-> ctx .getChannel .getRemoteAddress .toString (.split ":") first (subs 1)))
@@ -119,5 +117,5 @@
 	  (nil? body)
 	  nil
 	  :else
-	  (throwf "Unrecognized body: %s" body))))
+	  (throw (Exception. "Unrecognized body: %s" body)))))
 
