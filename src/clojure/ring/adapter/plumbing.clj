@@ -25,14 +25,11 @@
   (if-let [ct (headers "content-type")]
     (-> ct (.split ";") first .trim .toLowerCase)))
 
-
+(def uri-query-regex #"([^?]+)[?]?([^?]+)?")
 (defn- uri-query [req]
-  (let [uri (.getUri req)
-	idx (.indexOf uri "?")]
-    (if (= idx -1)
-      [uri nil]
-      [(subs uri 0 idx) (subs uri (inc idx))])))
-    
+  (let [uri (.getUri req)]
+    (rest (re-find uri-query-regex uri))))
+
 (defn- keep-alive? [headers msg]
   (let [version (.getProtocolVersion msg)
 	minor (.getMinorVersion version)
