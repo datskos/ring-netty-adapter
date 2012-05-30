@@ -5,6 +5,6 @@ import org.junit.runner.RunWith;
 public class AllTests implements ExpectationsTestRunner.TestSource {
 
     public String testPath() {
-        return "test/clojure/ring/adapter/test";
+        return "test/clojure";
     }
 }
