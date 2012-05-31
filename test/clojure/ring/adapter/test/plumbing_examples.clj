@@ -48,6 +48,9 @@
 (expect {:headers {"x-scheme" "http"}} (in (add-headers (request {:scheme "http"}))))
 (expect {:headers {"content-length" "5"}} (in (add-headers (request {:content-length 5}))))
 
+;; content-type
+(expect {:content-type "foo"} (in (add-content-type (request {:content-type "foo"}))))
+
 (defn request [req]
   (let [method (get req :method HttpMethod/GET)
         keep-alive (get req :keep-alive true)
@@ -55,10 +58,12 @@
         content-length (get req :content-length)
         scheme (get req :scheme)
         encoding (get req :character-encoding)
+        content-type (get req :content-type)
         http-request (DefaultHttpRequest. HttpVersion/HTTP_1_1, method, uri)]
   (do
     (HttpHeaders/setKeepAlive http-request keep-alive)
     (if (not (nil? content-length)) (HttpHeaders/setContentLength http-request content-length))
     (if (not (nil? scheme)) (HttpHeaders/setHeader http-request "x-scheme" scheme))
     (if (not (nil? encoding)) (HttpHeaders/setHeader http-request HttpHeaders$Names/CONTENT_ENCODING encoding))
+    (if (not (nil? content-type)) (HttpHeaders/setHeader http-request HttpHeaders$Names/CONTENT_TYPE content-type))
     {:request http-request})))

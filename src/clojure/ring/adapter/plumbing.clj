@@ -5,17 +5,53 @@
            (org.jboss.netty.channel ChannelFutureListener DefaultFileRegion ChannelFutureProgressListener)
            (org.jboss.netty.buffer ChannelBufferInputStream ChannelBuffers)
            (org.jboss.netty.handler.stream ChunkedStream ChunkedFile)
-           (org.jboss.netty.handler.codec.http HttpHeaders HttpVersion HttpMethod HttpResponseStatus DefaultHttpResponse HttpHeaders$Names)))
+           (org.jboss.netty.handler.codec.http HttpMessage HttpHeaders HttpVersion HttpMethod HttpResponseStatus DefaultHttpResponse HttpHeaders$Names)))
 
-(def method-keyword (memoize (fn [^HttpMethod method]
-                               (-> method .getName s/lower-case keyword))))
+(defn header
+  ([req name]
+    (header req name nil))
+  ([req name value]
+    (HttpHeaders/getHeader req name value)))
 
-(defn add-method [req]
-  (let [method (-> (:request req) .getMethod)]
-    (assoc req :request-method (method-keyword method))))
+(defn content-length [^HttpMessage req]
+  (let [length (HttpHeaders/getContentLength req -1)]
+    (if (= length -1) nil length)))
 
-(defn add-keep-alive [req]
-  (assoc req :keep-alive (HttpHeaders/isKeepAlive (:request req))))
+(defn content-type [^HttpMessage req]
+  (let [type (header req HttpHeaders$Names/CONTENT_TYPE "")]
+    (-> type (.split ";") first s/trim s/lower-case)))
+
+(defn headers [^HttpMessage req]
+  (let [headers (.getHeaders req)
+        keys (map (comp s/lower-case key) headers)
+        vals (map val headers)]
+    (zipmap keys vals)))
+
+(defn add [key f]
+  (fn [req]
+    (let [value (f (:request req))]
+      (if (nil? value) req (assoc req key value)))))
+
+(defn add-context [key f]
+  #(assoc % key (f (:context %))))
+
+(defn remote-address [ctx]
+  (-> ctx .getChannel .getRemoteAddress .toString (.split ":") first (subs 1)))
+
+(def local-address #(-> % .getChannel .getLocalAddress))
+
+(def method-keyword (memoize #(-> % .getName s/lower-case keyword)))
+(def add-method (add :request-method #(method-keyword (.getMethod %))))
+(def add-keep-alive (add :keep-alive #(HttpHeaders/isKeepAlive %)))
+(def add-scheme (add :scheme #(header % "x-scheme" "http")))
+(def add-headers (add :headers #(headers %)))
+(def add-content-encoding (add :character-encoding #(header % HttpHeaders$Names/CONTENT_ENCODING)))
+(def add-content-length (add :content-length content-length))
+(def add-body (add :body #(ChannelBufferInputStream. (.getContent %))))
+(def add-content-type (add :content-type content-type))
+(def add-server-port (add-context :server-port #(.getPort (local-address %))))
+(def add-server-name (add-context :server-name #(.getHostName (local-address %))))
+(def add-remote-address (add-context :remote-addr remote-address))
 
 (defn add-uri-and-query [req]
   (let [regex #"([^?]+)[?]?([^?]+)?"
@@ -23,65 +59,23 @@
         [match uri query] (re-find regex request-uri)]
     (assoc req :uri uri :query-string query)))
 
-(defn add-content-length [req]
-  (let [default-value -1
-        length (HttpHeaders/getContentLength (:request req) default-value)]
-    (if (= length default-value)
-      req
-      (assoc req :content-length length))))
-
-(defn add-scheme [req]
-  (let [scheme (HttpHeaders/getHeader (:request req) "x-scheme" "http")]
-    (assoc req :scheme scheme)))
-
-(defn add-content-encoding [req]
-  (let [encoding (HttpHeaders/getHeader (:request req) HttpHeaders$Names/CONTENT_ENCODING)]
-    (if (nil? encoding)
-      req
-      (assoc req :character-encoding encoding))))
-
-(defn add-headers [req]
-  (let [headers (.getHeaders (:request req))
-        keys (map (comp s/lower-case key) headers)
-        vals (map val headers)]
-    (assoc req :headers (zipmap keys vals))))
-
-(defn add-body [req]
-  (let [content (-> req :request .getContent)]
-    (assoc req :body (ChannelBufferInputStream. content))))
-
-(defn- get-headers [req]
-  (reduce (fn [headers name]
-            (assoc headers (.toLowerCase name) (.getHeader req name)))
-    {}
-    (.getHeaderNames req)))
-
-(defn- remote-address [ctx]
-  (-> ctx .getChannel .getRemoteAddress .toString (.split ":") first (subs 1)))
-
-(defn- content-type [headers]
-  (if-let [ct (headers "content-type")]
-    (-> ct (.split ";") first .trim .toLowerCase)))
 
 (defn build-request-map
   "Converts a netty request into a ring request map"
   [ctx netty-request]
-  (let [headers (get-headers netty-request)
-        socket-address (-> ctx .getChannel .getLocalAddress)
-        request {:server-port (.getPort socket-address)
-                 :server-name (.getHostName socket-address)
-                 :remote-addr (remote-address ctx)
-                 :content-type (content-type  headers)
-                 :request netty-request}]
-     (-> request
-       add-method
-       add-keep-alive
-       add-uri-and-query
-       add-content-length
-       add-scheme
-       add-content-encoding
-       add-headers
-       add-body)))
+  (-> {:context ctx :request netty-request}
+    add-remote-address
+    add-server-name
+    add-server-port
+    add-method
+    add-keep-alive
+    add-uri-and-query
+    add-scheme
+    add-content-length
+    add-content-encoding
+    add-content-type
+    add-headers
+    add-body))
 
 (defn- set-headers [response headers]
   (doseq [[key val-or-vals] headers]
