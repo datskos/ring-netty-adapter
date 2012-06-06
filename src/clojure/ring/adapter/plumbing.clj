@@ -104,6 +104,14 @@
       (if not keep-alive
         (.addListener write-future ChannelFutureListener/CLOSE)))))
 
+(defn- write-input-stream [ch response stream keep-alive]
+  (.write ch response)
+  (-> (.write ch (ChunkedStream. stream))
+    (.addListener (proxy [ChannelFutureListener] []
+                    (operationComplete [fut]
+                      (.close stream)
+                      (-> fut .getChannel .close))))))
+
 (defn write-response [ctx zerocopy keep-alive {:keys [status headers body]}]
   (let [ch (.getChannel ctx)
         netty-response (DefaultHttpResponse. HttpVersion/HTTP_1_1 (HttpResponseStatus/valueOf status))]
@@ -113,13 +121,7 @@
       (seq? body)
       (write-string-body ch netty-response (apply str body) keep-alive)
       (instance? InputStream body)
-      (do
-        (.write ch netty-response)
-        (-> (.write ch (ChunkedStream. body))
-          (.addListener (proxy [ChannelFutureListener] []
-                          (operationComplete [fut]
-                            (.close body)
-                            (-> fut .getChannel .close))))))
+      (write-input-stream ch netty-response body keep-alive)
       (instance? File body)
       (write-file ch netty-response body keep-alive zerocopy)
       (nil? body)
