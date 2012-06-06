@@ -84,13 +84,10 @@
       (doseq [val val-or-vals]
         (.addHeader response key val)))))
 
-(defn- set-content-length [msg length]
-  (HttpHeaders/setContentLength msg length))
-
-(defn- write-content [ch response content keep-alive]
+(defn- write-string-body [ch response content keep-alive]
   (.setContent response (ChannelBuffers/copiedBuffer (.getBytes content)))
   (if keep-alive
-    (do (set-content-length response (count content))
+    (do (HttpHeaders/setContentLength response (count content))
       (.write ch response))
     (-> ch (.write response) (.addListener ChannelFutureListener/CLOSE))))
 
@@ -98,17 +95,12 @@
   (let [raf (RandomAccessFile. file "r")
         len (.length raf)
         region (if zero-copy
-      (DefaultFileRegion. (.getChannel raf) 0 len)
+      (DefaultFileRegion. (.getChannel raf) 0 len true)
       (ChunkedFile. raf 0 len 8192))]
     (.setHeader response "Content-Type" (URLConnection/guessContentTypeFromName (.getName file)))
-    (set-content-length response len)
+    (HttpHeaders/setContentLength response len)
     (.write ch response) ;write initial line and header
     (let [write-future (.write ch region)]
-      (if zero-copy
-        (.addListener write-future
-          (proxy [ChannelFutureProgressListener] []
-            (operationComplete [fut]
-              (.releaseExternalResources region)))))
       (if not keep-alive
         (.addListener write-future ChannelFutureListener/CLOSE)))))
 
@@ -117,9 +109,9 @@
         netty-response (DefaultHttpResponse. HttpVersion/HTTP_1_1 (HttpResponseStatus/valueOf status))]
     (set-headers netty-response headers)
     (cond (string? body)
-      (write-content ch netty-response body keep-alive)
+      (write-string-body ch netty-response body keep-alive)
       (seq? body)
-      (write-content ch netty-response (apply str body) keep-alive)
+      (write-string-body ch netty-response (apply str body) keep-alive)
       (instance? InputStream body)
       (do
         (.write ch netty-response)
