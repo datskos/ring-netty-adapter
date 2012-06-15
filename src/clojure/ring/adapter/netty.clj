@@ -22,28 +22,25 @@
       (-> evt .getChannel .close))))
 
 (defn- make-pipeline [options handler]
-  (let [pipeline (Channels/pipeline)
-        pipeline (doto pipeline
-      (.addLast "decoder" (HttpRequestDecoder.))
-      (.addLast "aggregator" (HttpChunkAggregator. 65636))
-      (.addLast "encoder" (HttpResponseEncoder.))
-      (.addLast "chunkedWriter" (ChunkedWriteHandler.))
-      (.addLast "handler" (make-handler handler (or (:zerocopy options) false))))]
-    pipeline))
+  (doto (Channels/pipeline)
+    (.addLast "decoder" (HttpRequestDecoder.))
+    (.addLast "aggregator" (HttpChunkAggregator. 65636))
+    (.addLast "encoder" (HttpResponseEncoder.))
+    (.addLast "chunkedWriter" (ChunkedWriteHandler.))
+    (.addLast "handler" (make-handler handler (or (:zerocopy options) false)))))
 
 (defn- pipeline-factory [options handler]
-  (proxy [ChannelPipelineFactory] []
-    (getPipeline [] (make-pipeline options handler))))
+  (reify ChannelPipelineFactory
+    (getPipeline [this] (make-pipeline options handler))))
 
 (defn- create-server [options handler]
   (let [bootstrap (ServerBootstrap. (NioServerSocketChannelFactory.
                                       (Executors/newCachedThreadPool)
-                                      (Executors/newCachedThreadPool)))
-        bootstrap (doto bootstrap
-      (.setPipelineFactory (pipeline-factory options handler))
-      (.setOption "child.tcpNoDelay" true)
-      (.setOption "child.keepAlive" true))]
-    bootstrap))
+                                      (Executors/newCachedThreadPool)))]
+      (doto bootstrap
+        (.setPipelineFactory (pipeline-factory options handler))
+        (.setOption "child.tcpNoDelay" true)
+        (.setOption "child.keepAlive" true))))
 
 (defn- bind [bs port]
   (.bind bs (InetSocketAddress. port)))
@@ -52,6 +49,6 @@
   (let [bootstrap (create-server options handler)
         port (options :port 80)]
     (println "Running server on port:" port)
-    (bind bootstrap port)))
+    (.bind bootstrap (InetSocketAddress. port))))
 
 		    
