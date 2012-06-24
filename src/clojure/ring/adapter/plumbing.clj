@@ -92,7 +92,7 @@
   (HttpHeaders/setContentLength response (count content))
   (listener (.write ch response)))
 
-(defn- write-file [ch response file keep-alive zero-copy]
+(defn- write-file [ch response file listener zero-copy]
   (let [raf (RandomAccessFile. file "r")
         len (.length raf)
         region (if zero-copy
@@ -101,16 +101,14 @@
     (.setHeader response "Content-Type" (URLConnection/guessContentTypeFromName (.getName file)))
     (HttpHeaders/setContentLength response len)
     (.write ch response) ;write initial line and header
-    (let [write-future (.write ch region)]
-      (if not keep-alive
-        (.addListener write-future ChannelFutureListener/CLOSE)))))
+    (listener (.write ch region))))
 
-(defn- write-input-stream [ch response stream keep-alive]
+(defn- write-input-stream [ch response stream listener]
   (.write ch response)
   (let [fut (.write ch (ChunkedStream. stream))]
-    (keep-alive fut)
-    (.addListener (proxy [ChannelFutureListener] []
-                    (operationComplete [_] (.close stream))))))
+    (listener fut)
+    (.addListener (reify ChannelFutureListener
+                    (operationComplete [_ _] (.close stream))))))
 
 (defn write-response [ctx zerocopy keep-alive {:keys [status headers body]}]
   (let [listener (create-response-listener keep-alive)
@@ -124,7 +122,7 @@
       (instance? InputStream body)
       (write-input-stream ch netty-response body listener)
       (instance? File body)
-      (write-file ch netty-response body keep-alive zerocopy)
+      (write-file ch netty-response body listener zerocopy)
       (nil? body)
       nil
       :else (throw (Exception. "Unrecognized body: %s" body)))))
