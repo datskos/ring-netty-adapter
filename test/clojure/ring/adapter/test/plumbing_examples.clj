@@ -32,7 +32,7 @@
 ;; content-length
 (expect {:content-length 5} (in (add-content-length (request {:content-length 5}))))
 (expect {:content-length 15} (in (add-content-length (request {:content-length 15}))))
-(expect (contains? (add-content-length (request {})) :content-length) false)
+(expect (nil? (:content-length (add-content-length (request {})))) true)
 
 ;; scheme
 (expect {:scheme "http"} (in (add-scheme (request {:scheme "http"}))))
@@ -42,7 +42,7 @@
 ;; character encoding
 (expect {:character-encoding "whocares"} (in (add-content-encoding (request {:character-encoding "whocares"}))))
 (expect {:character-encoding "behere"} (in (add-content-encoding (request {:character-encoding "behere"}))))
-(expect (contains? (add-content-encoding (request {})) :character-encoding) false)
+(expect (nil? (:character-encoding (add-content-encoding (request {})))) true)
 
 ;; headers
 (expect {:headers {"x-scheme" "http"}} (in (add-headers (request {:scheme "http"}))))

@@ -28,9 +28,7 @@
     (zipmap keys vals)))
 
 (defn add [key f]
-  (fn [req]
-    (let [value (f (:request req))]
-      (if (nil? value) req (assoc req key value)))))
+  #(assoc % key (f (:request %))))
 
 (defn add-context [key f]
   #(assoc % key (f (:context %))))
@@ -84,12 +82,15 @@
       (doseq [val val-or-vals]
         (.addHeader response key val)))))
 
-(defn- write-string-body [ch response content keep-alive]
-  (.setContent response (ChannelBuffers/copiedBuffer (.getBytes content)))
+(defn create-response-listener [keep-alive]
   (if keep-alive
-    (do (HttpHeaders/setContentLength response (count content))
-      (.write ch response))
-    (-> ch (.write response) (.addListener ChannelFutureListener/CLOSE))))
+    identity
+    #(.addListener % ChannelFutureListener/CLOSE)))
+
+(defn- write-string-body [ch response content listener]
+  (.setContent response (ChannelBuffers/copiedBuffer (.getBytes content)))
+  (HttpHeaders/setContentLength response (count content))
+  (listener (.write ch response)))
 
 (defn- write-file [ch response file keep-alive zero-copy]
   (let [raf (RandomAccessFile. file "r")
@@ -106,22 +107,22 @@
 
 (defn- write-input-stream [ch response stream keep-alive]
   (.write ch response)
-  (-> (.write ch (ChunkedStream. stream))
+  (let [fut (.write ch (ChunkedStream. stream))]
+    (keep-alive fut)
     (.addListener (proxy [ChannelFutureListener] []
-                    (operationComplete [fut]
-                      (.close stream)
-                      (-> fut .getChannel .close))))))
+                    (operationComplete [_] (.close stream))))))
 
 (defn write-response [ctx zerocopy keep-alive {:keys [status headers body]}]
-  (let [ch (.getChannel ctx)
+  (let [listener (create-response-listener keep-alive)
+        ch (.getChannel ctx)
         netty-response (DefaultHttpResponse. HttpVersion/HTTP_1_1 (HttpResponseStatus/valueOf status))]
     (set-headers netty-response headers)
     (cond (string? body)
-      (write-string-body ch netty-response body keep-alive)
+      (write-string-body ch netty-response body listener)
       (seq? body)
-      (write-string-body ch netty-response (apply str body) keep-alive)
+      (write-string-body ch netty-response (apply str body) listener)
       (instance? InputStream body)
-      (write-input-stream ch netty-response body keep-alive)
+      (write-input-stream ch netty-response body listener)
       (instance? File body)
       (write-file ch netty-response body keep-alive zerocopy)
       (nil? body)
