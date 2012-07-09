@@ -17,39 +17,39 @@
 (expect :trace (method-keyword HttpMethod/TRACE))
 
 ;; add method
-(expect {:request-method :get} (in (add-method (request {:method HttpMethod/GET}))))
-(expect {:request-method :post} (in (add-method (request {:method HttpMethod/POST}))))
+(expect :get (method (request {:method HttpMethod/GET})))
+(expect :post (method (request {:method HttpMethod/POST})))
 
 ;; add keep alive
-(expect {:keep-alive true} (in (add-keep-alive (request {:keep-alive true}))))
-(expect {:keep-alive false} (in (add-keep-alive (request {:keep-alive false}))))
+(expect true (keep-alive? (request {:keep-alive true})))
+(expect false (keep-alive? (request {:keep-alive false})))
 
 ;; add uri and query-string
-(expect {:uri "/", :query-string nil} (in (add-uri-and-query (request {:uri "/"}))))
-(expect {:uri "/apple", :query-string "you=me"} (in (add-uri-and-query (request {:uri "/apple?you=me"}))))
-(expect {:uri "/apple", :query-string "you=me&help=me"} (in (add-uri-and-query (request {:uri "/apple?you=me&help=me"}))))
+(expect ["/" nil] (url (request {:uri "/"})))
+(expect ["/apple" "you=me"] (url (request {:uri "/apple?you=me"})))
+(expect ["/apple" "you=me&help=me"] (url (request {:uri "/apple?you=me&help=me"})))
 
 ;; content-length
-(expect {:content-length 5} (in (add-content-length (request {:content-length 5}))))
-(expect {:content-length 15} (in (add-content-length (request {:content-length 15}))))
-(expect (nil? (:content-length (add-content-length (request {})))) true)
+(expect 5 (content-length (request {:content-length 5})))
+(expect 15 (content-length (request {:content-length 15})))
+(expect (nil? (content-length (request {}))) true)
 
 ;; scheme
-(expect {:scheme "http"} (in (add-scheme (request {:scheme "http"}))))
-(expect {:scheme "https"} (in (add-scheme (request {:scheme "https"}))))
-(expect {:scheme "http"} (in (add-scheme (request {}))))
+(expect "http" (scheme (request {:scheme "http"})))
+(expect "https" (scheme (request {:scheme "https"})))
+(expect "http" (scheme (request {})))
 
 ;; character encoding
-(expect {:character-encoding "whocares"} (in (add-content-encoding (request {:character-encoding "whocares"}))))
-(expect {:character-encoding "behere"} (in (add-content-encoding (request {:character-encoding "behere"}))))
-(expect (nil? (:character-encoding (add-content-encoding (request {})))) true)
+(expect "whocares" (character-encoding (request {:character-encoding "whocares"})))
+(expect "behere" (character-encoding (request {:character-encoding "behere"})))
+(expect (nil? (character-encoding (request {}))) true)
 
 ;; headers
-(expect {:headers {"x-scheme" "http"}} (in (add-headers (request {:scheme "http"}))))
-(expect {:headers {"content-length" "5"}} (in (add-headers (request {:content-length 5}))))
+(expect {"x-scheme" "http"} (headers (request {:scheme "http"})))
+(expect {"content-length" "5"} (headers (request {:content-length 5})))
 
 ;; content-type
-(expect {:content-type "foo"} (in (add-content-type (request {:content-type "foo"}))))
+(expect "foo" (content-type (request {:content-type "foo"})))
 
 (defn request [req]
   (let [method (get req :method HttpMethod/GET)
@@ -66,4 +66,4 @@
     (if (not (nil? scheme)) (HttpHeaders/setHeader http-request "x-scheme" scheme))
     (if (not (nil? encoding)) (HttpHeaders/setHeader http-request HttpHeaders$Names/CONTENT_ENCODING encoding))
     (if (not (nil? content-type)) (HttpHeaders/setHeader http-request HttpHeaders$Names/CONTENT_TYPE content-type))
-    {:request http-request})))
+    http-request)))

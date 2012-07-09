@@ -38,42 +38,44 @@
 
 (def local-address #(-> % .getChannel .getLocalAddress))
 
+(defn character-encoding [^HttpMessage request]
+  (header request HttpHeaders$Names/CONTENT_ENCODING))
+
 (def method-keyword (memoize #(-> % .getName s/lower-case keyword)))
-(def add-method (add :request-method #(method-keyword (.getMethod %))))
-(def add-keep-alive (add :keep-alive #(HttpHeaders/isKeepAlive %)))
-(def add-scheme (add :scheme #(header % "x-scheme" "http")))
-(def add-headers (add :headers #(headers %)))
-(def add-content-encoding (add :character-encoding #(header % HttpHeaders$Names/CONTENT_ENCODING)))
-(def add-content-length (add :content-length content-length))
-(def add-body (add :body #(ChannelBufferInputStream. (.getContent %))))
-(def add-content-type (add :content-type content-type))
-(def add-server-port (add-context :server-port #(.getPort (local-address %))))
-(def add-server-name (add-context :server-name #(.getHostName (local-address %))))
-(def add-remote-address (add-context :remote-addr remote-address))
 
-(defn add-uri-and-query [req]
+(defn method [^HttpMessage request]
+  (method-keyword (.getMethod request)))
+
+(defn keep-alive? [^HttpMessage request]
+  (HttpHeaders/isKeepAlive request))
+
+(defn scheme [^HttpMessage request]
+  (header request "x-scheme" "http"))
+
+(defn url [^HttpMessage request]
   (let [regex #"([^?]+)[?]?([^?]+)?"
-        request-uri (-> (:request req) .getUri)
+        request-uri (.getUri request)
         [match uri query] (re-find regex request-uri)]
-    (assoc req :uri uri :query-string query)))
-
+    [uri query]))
 
 (defn build-request-map
   "Converts a netty request into a ring request map"
   [ctx netty-request]
-  (-> {:context ctx :request netty-request}
-    add-remote-address
-    add-server-name
-    add-server-port
-    add-method
-    add-keep-alive
-    add-uri-and-query
-    add-scheme
-    add-content-length
-    add-content-encoding
-    add-content-type
-    add-headers
-    add-body))
+  (let [local-addr (local-address ctx)
+        [uri query] (url netty-request)]
+    { :remote-addr (remote-address ctx)
+      :server-name (.getHostName (local-address ctx))
+      :server-port (.getPort (local-address ctx))
+      :content-type (content-type netty-request)
+      :body (ChannelBufferInputStream. (.getContent netty-request))
+      :content-length (content-length netty-request)
+      :character-encoding (character-encoding netty-request)
+      :headers (headers netty-request)
+      :request-method (method netty-request)
+      :keep-alive (keep-alive? netty-request)
+      :scheme (scheme netty-request)
+      :uri uri
+      :query-string query}))
 
 (defn- set-headers [response headers]
   (doseq [[key val-or-vals] headers]
