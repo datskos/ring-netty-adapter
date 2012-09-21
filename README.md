@@ -1,3 +1,8 @@
+# No longer developed
+
+As an alternative, please see  [aleph](https://github.com/ztellman/aleph)
+
+
 ## Ring-Netty-Adapter
 
 This repo adds (experimental/alpha) Netty support to Ring
@@ -8,7 +13,7 @@ This repo adds (experimental/alpha) Netty support to Ring
       {:status  200
        :headers {"Content-Type" "text/html"}
        :body    "Hello World from Ring-Netty"})
-    
+
     (run-netty app {:port 8080})
 
 
@@ -34,7 +39,7 @@ To use the netty backend, include ring-netty-adapter in your project.clj's :depe
     [ring-netty-adapter "0.0.3"]
 
 
-Next steps: 
+Next steps:
 
 * squash any bugs that pop up
 * ssl support
